@@ -8,13 +8,13 @@ import (
     SU "github.com/fbaube/stringutils"
 )
 
-// TableName returns the 3-letter DB table code.
+// TableName returns the 3-letter DB table name. 
 // This is non-standard for UUIDs.
 func (u *OID) TableName() string {
      return string(u[13:16])
 }
 
-// SetTableName sets the 3-letter DB table code.
+// SetTableName sets the 3-letter DB table name. 
 // This	is non-standard for UUIDs. 
 func (u *OID) SetTableName(s string) {
       if len(s) != 3 && len(s) != 0 {
@@ -26,7 +26,8 @@ func (u *OID) SetTableName(s string) {
 
 // String assumes a UUID v7 with modifications.
 // It renders the OID as "YMDHM-XXX-CCC":
-//  - YMDHM is the m5 app's compressed date & time 
+//  - YMDHM is the m5 app's compressed date & time
+//    (e.g. 6bpi0 = 2026, 11=Nov, i = 18th, 0=00:00) 
 //  - XXX is the stdlib's sub-ms ns field (0..4095) 
 //  - CCC is the (non-standard!) DB table name 
 //
@@ -50,44 +51,25 @@ func (u *OID) String() string {
             u[6]&0xF, u[7], u[13], u[14], u[15]) 
 }
 
-/*
-func (u *OID) IsValidKey() error {
-    if uuid.UUID(*u) == uuid.Nil() { // NilOID {
-        return errors.New("required UUID is Nil (all zeroes)")
-    }
-    return nil
-}
-*/
 func (u *OID) IsNil() bool {
     return uuid.UUID(*u) == Nil 
 }
 
-func (u OIDnilable) OIDisSet() bool {
-    return u.IsValid && uuid.UUID(u.OID) != Nil
+func (u *OID) Bytes() []byte {
+      return u[:] // len 16 
 }
-func UUIDasBytes(u any) []byte {
-    switch v := u.(type) {
-    case uuid.UUID:
-        return v[:]
-    case OIDnilable:
-        if !v.IsValid {
-            return nil
-        }
-        return v.OID[:]
-    // TODO: Accept a Nork ? 
-    default:
-        panic(fmt.Sprintf("UUIDasBytes: bad type: %T", u))
-    }
-}
-func UUIDfromBytes(b []byte) (uuid.UUID, error) { 
-     var u uuid.UUID 
+
+func NewFromBytes(b []byte) (OID, error) { 
+     var u OID
      if len(b) != 16 {
-        return uuid.Nil(), fmt.Errorf("UUID must be 16 bytes, got %d", len(b))
+        return OID(Nil), fmt.Errorf("UUID must be 16 bytes, got %d", len(b))
      }
      // copy(dst []byte, src string) int
      copy(u[:], b)
      return u, nil 
      }
+
+/*
 func UUIDisNil(u any) bool {
    switch v := u.(type) {
     case uuid.UUID:
@@ -98,6 +80,8 @@ func UUIDisNil(u any) bool {
         panic(fmt.Sprintf("UUIDisNil: bad type: %T", u))
     }
 }
+*/
+
 func UUIDasHexString(u uuid.UUID) string { return "UUIDasHexString:TBS" }
 
 func (u *OID) HasValidTableName() bool {
@@ -106,21 +90,5 @@ func (u *OID) HasValidTableName() bool {
     }
     got := u.TableName()
     return SU.IsAsciiAlphanum(got) 
-}
-
-func (u *OID) NewTabledUUIDv7(tableName string) *OID {
-if len(tableName) != 3 { panic("Bad UUISv7 table name: " + tableName) }
-     u.SetTableName(tableName)
-     return u
-}
-
-// Perplexity says: This makes the SQL boundary
-// unambiguous: An unset optional UUID becomes SQL
-// NULL, while a set UUID becomes a 16-byte BLOB.
-func BindNilableOID(u OIDnilable) any {
-    if !u.IsValid {
-        return nil
-    }
-    return u.OID[:]
 }
 
