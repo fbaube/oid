@@ -84,10 +84,10 @@ var (
 // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
      if tableName != "" && len(tableName) != 3 {
-        panic("Bad length of OID table name <<" + tableName + ">>")
+        panic("Bad length of OID table name <" + tableName + ">")
         }
      if !SU.IsAsciiAlphanum(tableName) {
-        panic("Bad chars in OID table name <<" + tableName + ">>")
+        panic("Bad chars in OID table name <" + tableName + ">")
         }
    // =========
    //  PROCEED 

@@ -5,7 +5,6 @@ import (
 	"time"
     "uuid"
     "fmt"
-	"errors"
     SU "github.com/fbaube/stringutils"
 )
 
@@ -25,12 +24,11 @@ func (u *OID) SetTableName(s string) {
      copy(u[13:16], s) 
 }
 
-// String assumes UUID v7 with modifications.
+// String assumes a UUID v7 with modifications.
 // It renders the OID as "YMDHM-XXX-CCC":
-//  - YMDHM is the compressed form of date
-//    & time used in the m5 app
+//  - YMDHM is the m5 app's compressed date & time 
 //  - XXX is the stdlib's sub-ms ns field (0..4095) 
-//  - CCC is the non-standard DB table name 
+//  - CCC is the (non-standard!) DB table name 
 //
 // For the lowercase hex-and-dash representation 
 // defined in RFC 9562, use uuid.UUID.String
@@ -48,23 +46,24 @@ func (u *OID) String() string {
      unix_time = time.UnixMilli(int64(unix_ts_ms))
      var ymdhm string
      ymdhm = SU.TimeAsYMDHM(unix_time)
-     return ymdhm + fmt.Sprintf("-%1x%2x-%c%c%c", // -%4d",
-            u[6]&0xF, u[7], u[13], u[14], u[15]) // , u.RowID())
+     return ymdhm + fmt.Sprintf("-%1x%2x-%c%c%c", 
+            u[6]&0xF, u[7], u[13], u[14], u[15]) 
 }
 
-// =====================================
-//   The rest of these next func's are 
-// mostly the API proposed by Perplexity 
-// =====================================
-
-func (u *OID) isValidKey() error {
+/*
+func (u *OID) IsValidKey() error {
     if uuid.UUID(*u) == uuid.Nil() { // NilOID {
         return errors.New("required UUID is Nil (all zeroes)")
     }
     return nil
 }
+*/
+func (u *OID) IsNil() bool {
+    return uuid.UUID(*u) == Nil 
+}
+
 func (u OIDnilable) OIDisSet() bool {
-    return u.IsValid && uuid.UUID(u.OID) != uuid.Nil() // NilOID
+    return u.IsValid && uuid.UUID(u.OID) != Nil
 }
 func UUIDasBytes(u any) []byte {
     switch v := u.(type) {
@@ -92,9 +91,9 @@ func UUIDfromBytes(b []byte) (uuid.UUID, error) {
 func UUIDisNil(u any) bool {
    switch v := u.(type) {
     case uuid.UUID:
-        return v == uuid.Nil() // NilOID
+        return v == Nil
     case OIDnilable:
-        return !v.IsValid || uuid.UUID(v.OID) == uuid.Nil() // NilOID
+        return !v.IsValid || uuid.UUID(v.OID) == Nil
     default:
         panic(fmt.Sprintf("UUIDisNil: bad type: %T", u))
     }
@@ -102,7 +101,7 @@ func UUIDisNil(u any) bool {
 func UUIDasHexString(u uuid.UUID) string { return "UUIDasHexString:TBS" }
 
 func (u *OID) HasValidTableName() bool {
-    if uuid.UUID(*u) == uuid.Nil() { 
+    if uuid.UUID(*u) == Nil { 
         return false 
     }
     got := u.TableName()
