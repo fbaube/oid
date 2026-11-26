@@ -1,46 +1,18 @@
 package oid
 
 import(
-    "uuid"
     "time"
     "sync"
-    "cmp"
-    "bytes"
-    "errors"
     "math/rand"
-    "encoding/hex"
     "encoding/binary"
 )
-    
-// ================
-//  FROM GO STDLIB
-// ================
 
-// Original coyright notice:
-// Copyright 2026 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-//
-// Package uuid supports generating and manipulating UUIDs.
-//
-// See [RFC 9562] for details.
-//
-// Random components of new UUIDs are generated with 
-// a cryptographically secure random number generator.
-//
-// UUIDs may be generated using various algorithms.
-// The [New] function returns a new UUID generated 
-// using  an algorithm suitable for most purposes.
-//
-// [RFC 9562]: https://www.rfc-editor.org/rfc/rfc9562.html
+// q.v. https://www.rfc-editor.org/rfc/rfc9562.html
 
-// =================
-//  START: NEW CODE
-// =================
-
-// OID is a UUID based on the Go stdlib UUID version 7.
+// OID is a UUID that borrows from the Go stdlib UUID
+// version 7 a bit, and veers from the RFC a bit. 
 // It is not field-for-field compatible with RFC 9562
-// standard UUID v7, but it is fully interoperable:
+// standard UUID v7, but it is fully interoperable. 
 //  - Input argument "tableName", the DB table name, 
 //    must be either three letters or the empty string 
 //    (""). NOTE: To favor UC or LC (or neither) is TBD. 
@@ -196,55 +168,6 @@ func (u *OID) setVariant(variant byte) {
 	u[8] = (u[8] & 0b0011_1111) | (variant << 6)
 }
 
-// Parse returns the UUID represented by s.
-//
-// It accepts strings in the following forms:
-//
-//	f81d4fae-7dec-11d0-a765-00a0c91e6bf6
-//	{f81d4fae-7dec-11d0-a765-00a0c91e6bf6}
-//	urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6
-//	f81d4fae7dec11d0a76500a0c91e6bf6
-//
-// Alphabetic characters in the hexadecimal digits may be any case.
-func Parse(s string) (uuid.UUID, error) {
-	var u uuid.UUID
-	err := u.UnmarshalText([]byte(s))
-	return u, err
-}
-
-// MustParse returns the UUID represented by s.
-//
-// It panics if s is not a valid string representation of a UUID as defined by [Parse].
-func MustParse(s string) uuid.UUID {
-	u, err := Parse(s)
-	if err != nil {
-		panic(err)
-	}
-	return u
-}
-
-// Nil returns the Nil UUID 00000000-0000-0000-0000-000000000000.
-//
-// The Nil UUID is defined in [Section 5.9 of RFC 9562].
-// Note that this is not the same as the Go value nil.
-//
-// [Section 5.9 of RFC 9562]: https://www.rfc-editor.org/rfc/rfc9562#section-5.9
-func Nil() uuid.UUID {
-	return uuid.UUID{}
-}
-
-// Max returns the Max UUID ffffffff-ffff-ffff-ffff-ffffffffffff.
-//
-// The Max UUID is defined in [Section 5.10 of RFC 9562].
-//
-// [Section 5.10 of RFC 9562]: https://www.rfc-editor.org/rfc/rfc9562#section-5.10
-func Max() uuid.UUID {
-	return uuid.UUID{
-		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	}
-}
-
 // String returns the string representation of u.
 //
 // OBS.!: It uses the lowercase hex-and-dash
@@ -253,91 +176,5 @@ func (u *OID) String() string {
 	// b, _ := u.MarshalText()
 	// return string(b)
     return "TBS" 
-}
-
-// MarshalText implements the [encoding.TextMarshaler] interface.
-// The encoding is the same as returned by [UUID.String]
-func (u *OID) MarshalText() ([]byte, error) {
-	return u.AppendText(make([]byte, 0, 36))
-}
-
-// AppendText implements the [encoding.TextAppender] interface.
-// The encoding is the same as returned by [UUID.String]
-func (u *OID) AppendText(b []byte) ([]byte, error) {
-	off := len(b)
-	b = append(b, "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"...)
-	dst := b[off:]
-	hex.Encode(dst[0:8], u[0:4])
-	hex.Encode(dst[9:13], u[4:6])
-	hex.Encode(dst[14:18], u[6:8])
-	hex.Encode(dst[19:23], u[8:10])
-	hex.Encode(dst[24:36], u[10:16])
-	return b, nil
-}
-
-var errInvalid = errors.New("invalid uuid")
-
-// UnmarshalText implements the [encoding.TextUnmarshaler] interface.
-// The UUID is expected in a form accepted by [Parse].
-func (u *OID) UnmarshalText(b []byte) error {
-	var dst OID
-	switch len(b) {
-	case len("urn:uuid:") + 36:
-		// urn:uuid:00000000-0000-0000-0000-000000000000
-		b = bytes.TrimPrefix(b, []byte("urn:uuid:"))
-	case 2 + 36:
-		// {00000000-0000-0000-0000-000000000000}
-		b = bytes.TrimPrefix(b, []byte("{"))
-		b = bytes.TrimSuffix(b, []byte("}"))
-	case 32:
-		// 00000000000000000000000000000000
-		if _, err := hex.Decode(dst[:], b); err != nil {
-			return errInvalid
-		}
-		*u = dst
-		return nil
-	}
-	// 00000000-0000-0000-0000-000000000000
-	if len(b) != 36 {
-		return errInvalid
-	}
-	if b[8] != '-' || b[13] != '-' || b[18] != '-' || b[23] != '-' {
-		return errInvalid
-	}
-	if _, err := hex.Decode(dst[0:4], b[0:8]); err != nil {
-		return errInvalid
-	}
-	if _, err := hex.Decode(dst[4:6], b[9:13]); err != nil {
-		return errInvalid
-	}
-	if _, err := hex.Decode(dst[6:8], b[14:18]); err != nil {
-		return errInvalid
-	}
-	if _, err := hex.Decode(dst[8:10], b[19:23]); err != nil {
-		return errInvalid
-	}
-	if _, err := hex.Decode(dst[10:16], b[24:36]); err != nil {
-		return errInvalid
-	}
-	*u = dst
-	return nil
-}
-
-// Compare compares the UUID u with v.
-// If u is before v, it returns -1.
-// If u is after v, it returns +1.
-// If they are the same, it returns 0.
-//
-// Compare uses the big-endian byte order defined in
-// [Section 6.11 of RFC 9562] for sorting.
-//
-// [Section 6.11 of RFC 9562]: https://www.rfc-editor.org/rfc/rfc9562#section-6.11
-func (u *OID) Compare(v *OID) int {
-	for i := range u {
-		if c := cmp.Compare(u[i], v[i]); c != 0 {
-			return c
-		}
-	}
-	return 0
 }
 

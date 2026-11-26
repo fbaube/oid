@@ -47,13 +47,13 @@ func UUIDasString(u *uuid.UUID) string {
 // =====================================
 
 func OIDisValidKey(u OID) error {
-    if u == NilOID {
+    if uuid.UUID(u) == uuid.Nil() { // NilOID {
         return errors.New("required UUID is Nil (all zeroes)")
     }
     return nil
 }
 func NilableOIDisSet(u OIDnilable) bool {
-    return u.IsValid && u.OID != NilOID
+    return u.IsValid && uuid.UUID(u.OID) != uuid.Nil() // NilOID
 }
 func UUIDasBytes(u any) []byte {
     switch v := u.(type) {
@@ -83,7 +83,7 @@ func UUIDisNil(u any) bool {
     case uuid.UUID:
         return v == uuid.Nil() // NilOID
     case OIDnilable:
-        return !v.IsValid || v.OID == NilOID
+        return !v.IsValid || uuid.UUID(v.OID) == uuid.Nil() // NilOID
     default:
         panic(fmt.Sprintf("UUIDisNil: bad type: %T", u))
     }
