@@ -17,13 +17,25 @@ func (u *OID) TableName() string {
 
 // SetTableName sets the 3-letter DB table code.
 // This	is non-standard for UUIDs. 
-func (u *OID) SetTableName(table string) {
+func (u *OID) SetTableName(s string) {
+      if len(s) != 3 && len(s) != 0 {
+         panic("Nad length of DN table name <" + s + ">")
+         }
      // copy(dst []byte, src string) int
-     copy(u[13:16], (table+"   ")[0:3])
+     copy(u[13:16], s) 
 }
 
-// String assumes v7, and table name in last three bytes.
-func UUIDasString(u *uuid.UUID) string {
+// String assumes UUID v7 with modifications.
+// It renders the OID as "YMDHM-XXX-CCC":
+//  - YMDHM is the compressed form of date
+//    & time used in the m5 app
+//  - XXX is the stdlib's sub-ms ns field (0..4095) 
+//  - CCC is the non-standard DB table name 
+//
+// For the lowercase hex-and-dash representation 
+// defined in RFC 9562, use uuid.UUID.String
+// .
+func (u *OID) String() string {
      // First convert the ms count to a Unix time.
      // Shift the elements into place
      // TODO: Our v7.New does not yet set the ns.
@@ -34,7 +46,6 @@ func UUIDasString(u *uuid.UUID) string {
      // then tbl & rowID
      var unix_time time.Time
      unix_time = time.UnixMilli(int64(unix_ts_ms))
-//   println(unix_time.String())
      var ymdhm string
      ymdhm = SU.TimeAsYMDHM(unix_time)
      return ymdhm + fmt.Sprintf("-%1x%2x-%c%c%c", // -%4d",
@@ -46,13 +57,13 @@ func UUIDasString(u *uuid.UUID) string {
 // mostly the API proposed by Perplexity 
 // =====================================
 
-func OIDisValidKey(u OID) error {
-    if uuid.UUID(u) == uuid.Nil() { // NilOID {
+func (u *OID) isValidKey() error {
+    if uuid.UUID(*u) == uuid.Nil() { // NilOID {
         return errors.New("required UUID is Nil (all zeroes)")
     }
     return nil
 }
-func NilableOIDisSet(u OIDnilable) bool {
+func (u OIDnilable) OIDisSet() bool {
     return u.IsValid && uuid.UUID(u.OID) != uuid.Nil() // NilOID
 }
 func UUIDasBytes(u any) []byte {

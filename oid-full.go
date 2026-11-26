@@ -3,7 +3,6 @@ package oid
 import(
     "time"
     "sync"
-    "uuid"
     "math/rand"
     "encoding/binary"
     SU "github.com/fbaube/stringutils"
@@ -183,10 +182,4 @@ func (u *OID) setVariant(variant byte) {
 	u[8] = (u[8] & 0b0011_1111) | (variant << 6)
 }
 
-// String returns the lowercase hex-and-dash
-// representation defined in RFC 9562.
-func (u *OID) String() string {
-	b, _ := uuid.UUID(*u).MarshalText()
-	return string(b)
-}
 
