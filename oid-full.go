@@ -3,8 +3,10 @@ package oid
 import(
     "time"
     "sync"
+    "uuid"
     "math/rand"
     "encoding/binary"
+    SU "github.com/fbaube/stringutils"
 )
 
 // q.v. https://www.rfc-editor.org/rfc/rfc9562.html
@@ -82,6 +84,12 @@ var (
 // |                            rand_b                             |
 // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
+     if tableName != "" && len(tableName) != 3 {
+        panic("Bad length of OID table name <<" + tableName + ">>")
+        }
+     if !SU.IsAsciiAlphanum(tableName) {
+        panic("Bad chars in OID table name <<" + tableName + ">>")
+        }
    // =========
    //  PROCEED 
    // =========
@@ -132,6 +140,9 @@ var (
                (timestamp & 0x0ffff)     //  4 hex digits = 16 bits
     // hibits in hex is now TTTT TTTT TTTT vvvv TTTT
 
+    // ==============
+    //  NOW BUILD IT
+    // ==============
     var u OID 
     // var  BigEndian bigEndian
     // type bigEndian struct{}
@@ -153,7 +164,11 @@ var (
 	u.setVersion(7)
 	u.setVariant(0b10)
 
-	return &u
+    // =======================
+    //  INSERT the TABLE NAME
+    // =======================
+     u.SetTableName(tableName)
+     return &u
 }
 
 // setVersion zeroes the high hex digit and then
@@ -168,13 +183,10 @@ func (u *OID) setVariant(variant byte) {
 	u[8] = (u[8] & 0b0011_1111) | (variant << 6)
 }
 
-// String returns the string representation of u.
-//
-// OBS.!: It uses the lowercase hex-and-dash
+// String returns the lowercase hex-and-dash
 // representation defined in RFC 9562.
 func (u *OID) String() string {
-	// b, _ := u.MarshalText()
-	// return string(b)
-    return "TBS" 
+	b, _ := uuid.UUID(*u).MarshalText()
+	return string(b)
 }
 

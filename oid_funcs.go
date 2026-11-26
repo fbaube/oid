@@ -9,15 +9,15 @@ import (
     SU "github.com/fbaube/stringutils"
 )
 
-// TableNameInUUID returns the 3-letter DB table code.
+// TableName returns the 3-letter DB table code.
 // This is non-standard for UUIDs.
-func TableNameInUUID(u uuid.UUID) string {
+func (u *OID) TableName() string {
      return string(u[13:16])
 }
 
-// SetTableNameInUUID sets the 3-letter DB table code.
+// SetTableName sets the 3-letter DB table code.
 // This	is non-standard for UUIDs. 
-func SetTableNameInUUID(u *uuid.UUID, table string) {
+func (u *OID) SetTableName(table string) {
      // copy(dst []byte, src string) int
      copy(u[13:16], (table+"   ")[0:3])
 }
@@ -90,18 +90,17 @@ func UUIDisNil(u any) bool {
 }
 func UUIDasHexString(u uuid.UUID) string { return "UUIDasHexString:TBS" }
 
-func UUIDhasValidTableName(u uuid.UUID) bool {
-    if u == uuid.Nil() { // NilOID {
-        return false // errors.New("required UUID is Nil (all zeroes)")
+func (u *OID) HasValidTableName() bool {
+    if uuid.UUID(*u) == uuid.Nil() { 
+        return false 
     }
-    got := TableNameInUUID(u)
+    got := u.TableName()
     return SU.IsAsciiAlphanum(got) 
 }
 
-func NewTabledUUIDv7(tableName string) uuid.UUID {
-     if len(tableName) != 3 { panic("Bad UUISv7 table name: " + tableName) }
-     u := uuid.NewV7()
-     SetTableNameInUUID(&u, tableName)
+func (u *OID) NewTabledUUIDv7(tableName string) *OID {
+if len(tableName) != 3 { panic("Bad UUISv7 table name: " + tableName) }
+     u.SetTableName(tableName)
      return u
 }
 
