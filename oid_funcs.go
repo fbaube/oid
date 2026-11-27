@@ -8,6 +8,10 @@ import (
     SU "github.com/fbaube/stringutils"
 )
 
+func (u *OID) UUID() uuid.UUID {
+      return uuid.UUID(*u)
+}
+
 // TableName returns the 3-letter DB table name. 
 // This is non-standard for UUIDs.
 func (u *OID) TableName() string {
