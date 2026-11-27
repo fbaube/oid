@@ -1,6 +1,7 @@
 package oid
 
 import(
+    "fmt"
     "time"
     "sync"
     "math/rand"
@@ -182,4 +183,13 @@ func (u *OID) setVariant(variant byte) {
 	u[8] = (u[8] & 0b0011_1111) | (variant << 6)
 }
 
+func NewFromBytes(b []byte) (OID, error) {
+     var u OID
+     if len(b) != 16 {
+        return OID(Nil), fmt.Errorf("UUID must be 16 bytes, got %d", len(b))
+     }
+     // copy(dst []byte, src string) int
+     copy(u[:], b)
+     return u, nil
+     }
 

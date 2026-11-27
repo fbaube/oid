@@ -54,35 +54,13 @@ func (u *OID) String() string {
 func (u *OID) IsNil() bool {
     return uuid.UUID(*u) == Nil 
 }
+func (u *OID) IsSet() bool {
+    return uuid.UUID(*u) != Nil 
+}
 
 func (u *OID) Bytes() []byte {
       return u[:] // len 16 
 }
-
-func NewFromBytes(b []byte) (OID, error) { 
-     var u OID
-     if len(b) != 16 {
-        return OID(Nil), fmt.Errorf("UUID must be 16 bytes, got %d", len(b))
-     }
-     // copy(dst []byte, src string) int
-     copy(u[:], b)
-     return u, nil 
-     }
-
-/*
-func UUIDisNil(u any) bool {
-   switch v := u.(type) {
-    case uuid.UUID:
-        return v == Nil
-    case OIDnilable:
-        return !v.IsValid || uuid.UUID(v.OID) == Nil
-    default:
-        panic(fmt.Sprintf("UUIDisNil: bad type: %T", u))
-    }
-}
-*/
-
-func UUIDasHexString(u uuid.UUID) string { return "UUIDasHexString:TBS" }
 
 func (u *OID) HasValidTableName() bool {
     if uuid.UUID(*u) == Nil { 
