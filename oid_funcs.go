@@ -17,9 +17,16 @@ func (u *OID) TableName() string {
 // SetTableName sets the 3-letter DB table name. 
 // This	is non-standard for UUIDs. 
 func (u *OID) SetTableName(s string) {
-      if len(s) != 3 && len(s) != 0 {
-         panic("Nad length of DN table name <" + s + ">")
+      if s == "" {
+         clear(u[13:16])
+         return
          }
+      if len(s) != 3 {
+         panic("Bad length for OID's DB table name <" + s + ">")
+         }
+     if !SU.IsAsciiAlphanum(s) {
+        panic("Bad chars for OID's DB table name <" + s + ">")
+     }
      // copy(dst []byte, src string) int
      copy(u[13:16], s) 
 }
@@ -38,8 +45,9 @@ func (u *OID) String() string {
      // First convert the ms count to a Unix time.
      // Shift the elements into place
      // TODO: Our v7.New does not yet set the ns.
-     var unix_ts_ms uint64
-     unix_ts_ms = uint64(binary.BigEndian.Uint64(u[:6]) >> 16)
+ var unix_ts_ms uint64 // Perplexity suggests a fix 
+  // unix_ts_ms = uint64(binary.BigEndian.Uint64(u[:6]) >> 16) 
+     unix_ts_ms = binary.BigEndian.Uint64(u[0:8]) >> 16
      // timestamp to YMDHM
      // sep. ts bits to sthg else
      // then tbl & rowID
@@ -47,7 +55,7 @@ func (u *OID) String() string {
      unix_time = time.UnixMilli(int64(unix_ts_ms))
      var ymdhm string
      ymdhm = SU.TimeAsYMDHM(unix_time)
-     return ymdhm + fmt.Sprintf("-%1x%2x-%c%c%c", 
+     return ymdhm + fmt.Sprintf("-%1x%02x-%c%c%c", 
             u[6]&0xF, u[7], u[13], u[14], u[15]) 
 }
 
@@ -59,7 +67,10 @@ func (u *OID) IsSet() bool {
 }
 
 func (u *OID) Bytes() []byte {
-      return u[:] // len 16 
+      // return u[:] // len 16 // Perplexity says this just aliases
+      b := make([]byte, 16)
+      copy(b, u[:])
+      return b
 }
 
 func (u *OID) HasValidTableName() bool {
